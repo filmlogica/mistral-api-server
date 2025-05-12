@@ -1,22 +1,23 @@
 FROM python:3.10-slim
 
-# Install required packages
+# Install packages
 RUN apt-get update && \
     apt-get install -y git curl && \
-    pip install --no-cache-dir flask
+    pip install --no-cache-dir flask requests
 
-# Install and run Ollama (lightweight Mistral host)
+# Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
-
-# Pull the Mistral model
-RUN ollama pull mistral
 
 # Copy app files
 WORKDIR /app
 COPY server.py .
 
-# Expose the default Ollama + Flask port
+# Expose Ollama + Flask port
 EXPOSE 11434
 
-# Start Ollama and Flask server
-CMD bash -c "ollama serve & sleep 5 && python server.py"
+# Start Ollama service in background, then wait & pull Mistral, then run Flask
+CMD bash -c "\
+    ollama serve & \
+    sleep 10 && \
+    ollama pull mistral && \
+    python server.py"
