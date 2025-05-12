@@ -1,25 +1,47 @@
 from flask import Flask, request, jsonify
-import requests
+import os
+import subprocess
 
 app = Flask(__name__)
 
-@app.route('/generate', methods=['POST'])
+# Load environment variables
+PORT = int(os.getenv("PORT", 11434))
+MODEL = os.getenv("MISTRAL_MODEL", "mistral")
+OLLAMA_PATH = os.getenv("OLLAMA_PATH", "ollama")
+MISTRAL_BACKEND_URL = f"http://0.0.0.0:{PORT}/generate"
+
+@app.route("/generate", methods=["POST"])
 def generate():
-    data = request.json
-    prompt = data.get("prompt", "")
+    try:
+        data = request.get_json()
+        prompt = data.get("prompt", "").strip()
+        stream = data.get("stream", False)
 
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": "mistral",
-            "prompt": prompt,
-            "stream": False
-        }
-    )
-    if response.ok:
-        return jsonify(response.json())
-    else:
-        return jsonify({"error": response.text}), 500
+        if not prompt:
+            return jsonify({"error": "No prompt provided."}), 400
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=11434)
+        print(f"🧠 Prompt received: {prompt}")
+
+        # Run ollama with subprocess
+        result = subprocess.run(
+            [OLLAMA_PATH, "run", MODEL, prompt],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            return jsonify({"error": "Ollama execution failed.", "details": result.stderr}), 500
+
+        response_text = result.stdout.strip()
+        print(f"✅ Mistral responded:\n{response_text}")
+        return jsonify({"response": response_text})
+
+    except Exception as e:
+        return jsonify({"error": "Server error", "message": str(e)}), 500
+
+@app.route("/")
+def index():
+    return jsonify({"message": "Mistral API is running!", "model": MODEL, "port": PORT})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=PORT)
