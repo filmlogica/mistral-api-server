@@ -1,17 +1,28 @@
-from flask import Flask, jsonify
+import os
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-@app.route('/')
+@app.route("/")
 def index():
-    return jsonify({
-        "status": "✅ IdeaReactor server is running!",
-        "message": "Welcome to the API layer of IdeaReactor powered by Mistral and Shopify."
-    }), 200
+    return "Mistral API Server is live and ready!", 200
 
-@app.route('/heartbeat', methods=['GET'])
+@app.route("/generate", methods=["POST"])
+def generate():
+    data = request.get_json()
+    prompt = data.get("prompt", "")
+    
+    # Simulated response (replace this with actual Mistral generation logic)
+    if not prompt:
+        return jsonify({"error": "Prompt is missing"}), 400
+
+    generated_text = f"This is a simulated response for prompt: '{prompt}'"
+    return jsonify({"response": generated_text})
+
+@app.route("/heartbeat", methods=["GET"])
 def heartbeat():
-    return '💓 Alive and kicking!', 200
+    return jsonify({"status": "alive"}), 200
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)
