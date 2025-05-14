@@ -1,8 +1,8 @@
 FROM python:3.10-slim
 
-# Install packages
+# Install system packages including CA certs
 RUN apt-get update && \
-    apt-get install -y git curl && \
+    apt-get install -y git curl ca-certificates && \
     pip install --no-cache-dir flask requests
 
 # Install Ollama
